@@ -8,6 +8,31 @@
 
 /* Begin PBXBuildFile section */
 		9E18DC85200D46A6004124ED /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9E18DC84200D46A6004124ED /* main.cpp */; };
+		9E18DC8D200D486F004124ED /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC8C200D486F004124ED /* OpenGL.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		9E18DC8F200D48B7004124ED /* libGLEW.2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC8E200D48B7004124ED /* libGLEW.2.1.0.dylib */; };
+		9E18DC91200D48CE004124ED /* libglfw.3.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC90200D48CE004124ED /* libglfw.3.2.dylib */; };
+		9E18DC93200D48F6004124ED /* libassimp.4.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC92200D48F6004124ED /* libassimp.4.1.0.dylib */; };
+		9E18DCA7200D492E004124ED /* libGIMPACTUtils.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC94200D492C004124ED /* libGIMPACTUtils.2.87.dylib */; };
+		9E18DCA8200D492E004124ED /* libBulletInverseDynamics.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC95200D492D004124ED /* libBulletInverseDynamics.2.87.dylib */; };
+		9E18DCA9200D492E004124ED /* libBulletSoftBody.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC96200D492D004124ED /* libBulletSoftBody.2.87.dylib */; };
+		9E18DCAA200D492E004124ED /* libHACD.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC97200D492D004124ED /* libHACD.2.87.dylib */; };
+		9E18DCAB200D492E004124ED /* libConvexDecomposition.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC98200D492D004124ED /* libConvexDecomposition.2.87.dylib */; };
+		9E18DCAC200D492E004124ED /* libBullet2FileLoader.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC99200D492D004124ED /* libBullet2FileLoader.2.87.dylib */; };
+		9E18DCAD200D492E004124ED /* libBullet3Common.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9A200D492D004124ED /* libBullet3Common.2.87.dylib */; };
+		9E18DCAE200D492E004124ED /* libBulletDynamics.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9B200D492D004124ED /* libBulletDynamics.2.87.dylib */; };
+		9E18DCAF200D492E004124ED /* libBullet3OpenCL_clew.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9C200D492D004124ED /* libBullet3OpenCL_clew.2.87.dylib */; };
+		9E18DCB0200D492E004124ED /* libBullet3Collision.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9D200D492D004124ED /* libBullet3Collision.2.87.dylib */; };
+		9E18DCB1200D492E004124ED /* libBullet3Dynamics.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9E200D492D004124ED /* libBullet3Dynamics.2.87.dylib */; };
+		9E18DCB2200D492E004124ED /* libBullet3Geometry.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DC9F200D492D004124ED /* libBullet3Geometry.2.87.dylib */; };
+		9E18DCB3200D492E004124ED /* libBulletRobotics.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA0200D492D004124ED /* libBulletRobotics.2.87.dylib */; };
+		9E18DCB4200D492E004124ED /* libLinearMath.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA1200D492D004124ED /* libLinearMath.2.87.dylib */; };
+		9E18DCB5200D492E004124ED /* libBulletXmlWorldImporter.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA2200D492D004124ED /* libBulletXmlWorldImporter.2.87.dylib */; };
+		9E18DCB6200D492E004124ED /* libBulletFileLoader.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA3200D492D004124ED /* libBulletFileLoader.2.87.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		9E18DCB7200D492E004124ED /* libBulletInverseDynamicsUtils.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA4200D492D004124ED /* libBulletInverseDynamicsUtils.2.87.dylib */; };
+		9E18DCB8200D492E004124ED /* libBulletCollision.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA5200D492E004124ED /* libBulletCollision.2.87.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		9E18DCB9200D492E004124ED /* libBulletWorldImporter.2.87.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E18DCA6200D492E004124ED /* libBulletWorldImporter.2.87.dylib */; };
+		9E18DCBC200D53A8004124ED /* ProjectSetup.h in Sources */ = {isa = PBXBuildFile; fileRef = 9E18DCBA200D4A55004124ED /* ProjectSetup.h */; };
+		9E18DCCA200D55F0004124ED /* glad.c in Sources */ = {isa = PBXBuildFile; fileRef = 9E18DCC9200D55EF004124ED /* glad.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +50,35 @@
 /* Begin PBXFileReference section */
 		9E18DC81200D46A6004124ED /* OpenGLSetupTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = OpenGLSetupTest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E18DC84200D46A6004124ED /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		9E18DC8C200D486F004124ED /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		9E18DC8E200D48B7004124ED /* libGLEW.2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libGLEW.2.1.0.dylib; path = ../../../../../usr/local/Cellar/glew/2.1.0/lib/libGLEW.2.1.0.dylib; sourceTree = "<group>"; };
+		9E18DC90200D48CE004124ED /* libglfw.3.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.2.dylib; path = ../../../../../usr/local/Cellar/glfw/3.2.1/lib/libglfw.3.2.dylib; sourceTree = "<group>"; };
+		9E18DC92200D48F6004124ED /* libassimp.4.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.4.1.0.dylib; path = ../../../../../usr/local/Cellar/assimp/4.1.0/lib/libassimp.4.1.0.dylib; sourceTree = "<group>"; };
+		9E18DC94200D492C004124ED /* libGIMPACTUtils.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libGIMPACTUtils.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libGIMPACTUtils.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC95200D492D004124ED /* libBulletInverseDynamics.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletInverseDynamics.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletInverseDynamics.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC96200D492D004124ED /* libBulletSoftBody.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletSoftBody.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletSoftBody.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC97200D492D004124ED /* libHACD.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libHACD.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libHACD.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC98200D492D004124ED /* libConvexDecomposition.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libConvexDecomposition.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libConvexDecomposition.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC99200D492D004124ED /* libBullet2FileLoader.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet2FileLoader.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet2FileLoader.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9A200D492D004124ED /* libBullet3Common.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet3Common.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet3Common.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9B200D492D004124ED /* libBulletDynamics.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletDynamics.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletDynamics.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9C200D492D004124ED /* libBullet3OpenCL_clew.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet3OpenCL_clew.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet3OpenCL_clew.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9D200D492D004124ED /* libBullet3Collision.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet3Collision.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet3Collision.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9E200D492D004124ED /* libBullet3Dynamics.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet3Dynamics.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet3Dynamics.2.87.dylib; sourceTree = "<group>"; };
+		9E18DC9F200D492D004124ED /* libBullet3Geometry.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBullet3Geometry.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBullet3Geometry.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA0200D492D004124ED /* libBulletRobotics.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletRobotics.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletRobotics.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA1200D492D004124ED /* libLinearMath.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libLinearMath.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libLinearMath.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA2200D492D004124ED /* libBulletXmlWorldImporter.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletXmlWorldImporter.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletXmlWorldImporter.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA3200D492D004124ED /* libBulletFileLoader.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletFileLoader.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletFileLoader.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA4200D492D004124ED /* libBulletInverseDynamicsUtils.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletInverseDynamicsUtils.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletInverseDynamicsUtils.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA5200D492E004124ED /* libBulletCollision.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletCollision.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletCollision.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCA6200D492E004124ED /* libBulletWorldImporter.2.87.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libBulletWorldImporter.2.87.dylib; path = ../../../../../usr/local/Cellar/bullet/2.87/lib/libBulletWorldImporter.2.87.dylib; sourceTree = "<group>"; };
+		9E18DCBA200D4A55004124ED /* ProjectSetup.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = ProjectSetup.h; sourceTree = "<group>"; };
+		9E18DCC5200D55EF004124ED /* khrplatform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = khrplatform.h; sourceTree = "<group>"; };
+		9E18DCC7200D55EF004124ED /* glad.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glad.h; sourceTree = "<group>"; };
+		9E18DCC9200D55EF004124ED /* glad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glad.c; sourceTree = "<group>"; };
+		9E18DCCB200D58C6004124ED /* basic.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.vert; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.glsl; };
+		9E18DCCD200D590D004124ED /* basic.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.frag; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +86,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E18DC8F200D48B7004124ED /* libGLEW.2.1.0.dylib in Frameworks */,
+				9E18DCA7200D492E004124ED /* libGIMPACTUtils.2.87.dylib in Frameworks */,
+				9E18DCA8200D492E004124ED /* libBulletInverseDynamics.2.87.dylib in Frameworks */,
+				9E18DCA9200D492E004124ED /* libBulletSoftBody.2.87.dylib in Frameworks */,
+				9E18DCAA200D492E004124ED /* libHACD.2.87.dylib in Frameworks */,
+				9E18DCAB200D492E004124ED /* libConvexDecomposition.2.87.dylib in Frameworks */,
+				9E18DCAC200D492E004124ED /* libBullet2FileLoader.2.87.dylib in Frameworks */,
+				9E18DCAD200D492E004124ED /* libBullet3Common.2.87.dylib in Frameworks */,
+				9E18DCAE200D492E004124ED /* libBulletDynamics.2.87.dylib in Frameworks */,
+				9E18DCAF200D492E004124ED /* libBullet3OpenCL_clew.2.87.dylib in Frameworks */,
+				9E18DCB0200D492E004124ED /* libBullet3Collision.2.87.dylib in Frameworks */,
+				9E18DCB1200D492E004124ED /* libBullet3Dynamics.2.87.dylib in Frameworks */,
+				9E18DCB2200D492E004124ED /* libBullet3Geometry.2.87.dylib in Frameworks */,
+				9E18DCB3200D492E004124ED /* libBulletRobotics.2.87.dylib in Frameworks */,
+				9E18DCB4200D492E004124ED /* libLinearMath.2.87.dylib in Frameworks */,
+				9E18DCB5200D492E004124ED /* libBulletXmlWorldImporter.2.87.dylib in Frameworks */,
+				9E18DCB6200D492E004124ED /* libBulletFileLoader.2.87.dylib in Frameworks */,
+				9E18DCB7200D492E004124ED /* libBulletInverseDynamicsUtils.2.87.dylib in Frameworks */,
+				9E18DCB8200D492E004124ED /* libBulletCollision.2.87.dylib in Frameworks */,
+				9E18DCB9200D492E004124ED /* libBulletWorldImporter.2.87.dylib in Frameworks */,
+				9E18DC93200D48F6004124ED /* libassimp.4.1.0.dylib in Frameworks */,
+				9E18DC91200D48CE004124ED /* libglfw.3.2.dylib in Frameworks */,
+				9E18DC8D200D486F004124ED /* OpenGL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,8 +118,10 @@
 		9E18DC78200D46A6004124ED = {
 			isa = PBXGroup;
 			children = (
+				9E18DCCC200D58EA004124ED /* Shaders */,
 				9E18DC83200D46A6004124ED /* OpenGLSetupTest */,
 				9E18DC82200D46A6004124ED /* Products */,
+				9E18DC8B200D486F004124ED /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -58,8 +137,91 @@
 			isa = PBXGroup;
 			children = (
 				9E18DC84200D46A6004124ED /* main.cpp */,
+				9E18DCBA200D4A55004124ED /* ProjectSetup.h */,
 			);
 			path = OpenGLSetupTest;
+			sourceTree = "<group>";
+		};
+		9E18DC8B200D486F004124ED /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC2200D55EF004124ED /* glad */,
+				9E18DC99200D492D004124ED /* libBullet2FileLoader.2.87.dylib */,
+				9E18DC9D200D492D004124ED /* libBullet3Collision.2.87.dylib */,
+				9E18DC9A200D492D004124ED /* libBullet3Common.2.87.dylib */,
+				9E18DC9E200D492D004124ED /* libBullet3Dynamics.2.87.dylib */,
+				9E18DC9F200D492D004124ED /* libBullet3Geometry.2.87.dylib */,
+				9E18DC9C200D492D004124ED /* libBullet3OpenCL_clew.2.87.dylib */,
+				9E18DCA5200D492E004124ED /* libBulletCollision.2.87.dylib */,
+				9E18DC9B200D492D004124ED /* libBulletDynamics.2.87.dylib */,
+				9E18DCA3200D492D004124ED /* libBulletFileLoader.2.87.dylib */,
+				9E18DC95200D492D004124ED /* libBulletInverseDynamics.2.87.dylib */,
+				9E18DCA4200D492D004124ED /* libBulletInverseDynamicsUtils.2.87.dylib */,
+				9E18DCA0200D492D004124ED /* libBulletRobotics.2.87.dylib */,
+				9E18DC96200D492D004124ED /* libBulletSoftBody.2.87.dylib */,
+				9E18DCA6200D492E004124ED /* libBulletWorldImporter.2.87.dylib */,
+				9E18DCA2200D492D004124ED /* libBulletXmlWorldImporter.2.87.dylib */,
+				9E18DC98200D492D004124ED /* libConvexDecomposition.2.87.dylib */,
+				9E18DC94200D492C004124ED /* libGIMPACTUtils.2.87.dylib */,
+				9E18DC97200D492D004124ED /* libHACD.2.87.dylib */,
+				9E18DCA1200D492D004124ED /* libLinearMath.2.87.dylib */,
+				9E18DC92200D48F6004124ED /* libassimp.4.1.0.dylib */,
+				9E18DC90200D48CE004124ED /* libglfw.3.2.dylib */,
+				9E18DC8E200D48B7004124ED /* libGLEW.2.1.0.dylib */,
+				9E18DC8C200D486F004124ED /* OpenGL.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9E18DCC2200D55EF004124ED /* glad */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC3200D55EF004124ED /* include */,
+				9E18DCC8200D55EF004124ED /* src */,
+			);
+			path = glad;
+			sourceTree = "<group>";
+		};
+		9E18DCC3200D55EF004124ED /* include */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC4200D55EF004124ED /* KHR */,
+				9E18DCC6200D55EF004124ED /* glad */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		9E18DCC4200D55EF004124ED /* KHR */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC5200D55EF004124ED /* khrplatform.h */,
+			);
+			path = KHR;
+			sourceTree = "<group>";
+		};
+		9E18DCC6200D55EF004124ED /* glad */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC7200D55EF004124ED /* glad.h */,
+			);
+			path = glad;
+			sourceTree = "<group>";
+		};
+		9E18DCC8200D55EF004124ED /* src */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCC9200D55EF004124ED /* glad.c */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		9E18DCCC200D58EA004124ED /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				9E18DCCB200D58C6004124ED /* basic.vert */,
+				9E18DCCD200D590D004124ED /* basic.frag */,
+			);
+			path = Shaders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +281,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E18DCBC200D53A8004124ED /* ProjectSetup.h in Sources */,
 				9E18DC85200D46A6004124ED /* main.cpp in Sources */,
+				9E18DCCA200D55F0004124ED /* glad.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -233,6 +397,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/glew/2.1.0/lib,
+					/usr/local/Cellar/glfw/3.2.1/lib,
+					/usr/local/Cellar/assimp/4.1.0/lib,
+					/usr/local/Cellar/bullet/2.87/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -241,6 +413,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/glew/2.1.0/lib,
+					/usr/local/Cellar/glfw/3.2.1/lib,
+					/usr/local/Cellar/assimp/4.1.0/lib,
+					/usr/local/Cellar/bullet/2.87/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
