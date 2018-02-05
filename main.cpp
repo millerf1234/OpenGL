@@ -2,32 +2,22 @@
 #include "ProjectSetup.h"
 #include "Quaternion.hpp"
 #include "teapotVerts.h"
-//#include "AlternativeAssimpObjLoader.h"
-//#include "PlayerShip.h"
+
 // System Headers
 //#include "glad.h"
 //#include <GLFW/glfw3.h>
-
 
 // Standard Headers
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <vector>
-//#include <iostream>
 
-#include "SpaceShipVertices.h"
+//#include "SpaceShipVertices.h"
 #include "SimpleObjLoader.h"
-//#include "Quaternion.hpp"
-#include "ShaderWrapper.h"
+#include "ShaderWrapper1.h"
 
-
-//#include "objOutputHolder_hpp"
-
-constexpr int triangleCount = 200000;
-constexpr int floatsPerTriangle = 6;
-constexpr float triangleSize = 0.008;
-
+constexpr int ENGINE_FLAME_TRANSLATION_DELAY_FRAMES = 150;
 constexpr float ZOOMSPEED = 0.015f;
 constexpr float MOVEMENTX = 0.035;
 constexpr float MOVEMENTY = 0.035f;
@@ -35,85 +25,74 @@ const GLfloat ROTATIONSPEED = 0.024;
 
 std::string loadSource(char* filename);
 void updateVertices(GLfloat* vertices, float t);
+//void makeEngineFlameOnSpaceShip(GLfloat * engineVerts);
 
 //Global variables:
-//Quaternion * xRot = new Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
-//Quaternion * yRot = new Quaternion(0.0f, 1.0f, 0.0f, 0.0f);
-//Quaternion * zRot = new Quaternion(0.0f, 0.0f, 1.0f, 0.0f);
 Quaternion *xRot, *yRot, *zRot;
-//PlayerShip *pShip;
-
-ShaderWrapper * mainEngineEffect; //First attempt as using my shader-compilation class
+ShaderWrapper* mainEngineEffect; //First attempt as using my shader-compilation class
+ShaderWrapper* sideEngineEffect; //Second attempt at using my working first attempt of shader-compilation class
 
 float xChange = 0.0f; //Used for translating the vertices before they reach the GPU
 float yChange = 0.0f;
 
-//Global vector of spaceship indices
-std::vector<float> ssVerts;
+aiVector3D rear(0.0f, 0.0f, -2.94231f);
 
-//SimpleObjLoader ssLoader("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship.obj");
+float deleteMeLater__MIN = 0.0f;
 
-//SimpleObjLoader ssLoader("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship2.obj");
+aiVector3D * translationHistory; //Used for engine flames
 
-SimpleObjLoader ssLoader("space_ship2.obj");
-
-//SimpleObjLoader ssLoader;
-
-//SimpleObjLoader ssLoader("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/testCube.obj");
-
-//SimpleObjLoader ssLoader("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/testCubeSimple.obj");
+//SimpleObjLoader ssLoader("space_ship2.obj");
+SimpleObjLoader ssLoader("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Objects/space_ship2.obj");
 
 int main(int argc, char * argv[]) {
     
-//    std::cout << "Please enter your file's location: \n";
-//    std::string fileLocation;
-//    std::cin.get();
-//    getline(std::cin, fileLocation);
-//
-//    SimpleObjLoader * ssLoaderTemp = new SimpleObjLoader(fileLocation.c_str());
-//
-//    ssLoader = *ssLoaderTemp;
-//
-//    delete ssLoaderTemp;
-    
-    extractVertices1(&ssVerts); 
-    
+    bool movementOccuredThisIteration = false;
+    double tildeKeyPressCounter = 0.0;
     mainEngineEffect = new ShaderWrapper;
+    sideEngineEffect = new ShaderWrapper;
+    
+    translationHistory = new aiVector3D[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES];
+    //Initialize all vectors in translationHistory to be the 0 vector
+    for (int i = 0; i < ENGINE_FLAME_TRANSLATION_DELAY_FRAMES; ++i) {
+        translationHistory[i] = aiVector3D(0.0f, 0.0f, -0.5f);
+    }
     
     //Make the rotation quaternions
-    xRot = new Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
-    yRot = new Quaternion(0.0f, 1.0f, 0.0f, 0.0f);
-    zRot = new Quaternion(0.0f, 0.0f, 1.0f, 0.0f);
+    xRot = new Quaternion(1.0f, 0.0f, 0.0f, 0.0f); //rotation about x axis
+    yRot = new Quaternion(0.0f, 1.0f, 0.0f, 0.0f); //rotation about y axis
+    zRot = new Quaternion(0.0f, 0.0f, 1.0f, 0.0f); //rotation about z axis
     
     // Load GLFW and Create a Window
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);  //version 4.x
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); //version x.1  (these 2 lines mean version 4.1)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GL_TRUE); //NOT SURE IF THIS IS NEEDED
-    glfwWindowHint(GL_SAMPLES, 16);
-    //glfwWindowHint(GLFW_FSAA_SAMPLES,0); //Doesn't work
+    //glfwWindowHint(GLFW_SRGB_CAPABLE, GL_TRUE); //NOT SURE IF THIS IS NEEDED
+    glfwWindowHint(GL_SAMPLES, 32);
+    //glfwWindowHint(GLFW_FSAA_SAMPLES, 4); //Switched to GL_SAMPLES in GLFW3 and newer
+    //For VSYNC, read: http://www.glfw.org/docs/3.0/group__context.html#ga6d4e0cdf151b5e579bd67f13202994ed
+    //Function for vsync is:  void glfwSwapInterval    (    int     interval    )
+    //However, should read about VSYNC before implementing to make sure it is done correctly
     
     std::cout << glfwGetVersionString();
     
-    auto mWindow = glfwCreateWindow(mWidth, mHeight, "OpenGL", nullptr, nullptr); //Open as window
-   //auto mWindow = glfwCreateWindow(2650, 1600, "OpenGL", glfwGetPrimaryMonitor(), nullptr); //Open fullscreen (alt+tab doesn't seem to work)
+    //Open not fullscreen (aka 'windowed'):
+    // auto mWindow = glfwCreateWindow(mWidth, mHeight, "OpenGL", nullptr, nullptr); //Open as window
     
-//    //Open on secondary monitor:
-//        int count;
-//        GLFWmonitor** monitors = glfwGetMonitors(&count);
-//    GLFWwindow * mWindow;
-//    if (count == 2) {
-//        std::cout << "\nThe monitor count is: " << count << std::endl;
-//        //auto mWindow = glfwCreateWindow(1920, 1080, "OpenGL", monitors[1], nullptr );
-//        mWindow = glfwCreateWindow(1920, 1080, "OpenGL", monitors[1], nullptr );
-//    }
-//    else {
-//        mWindow = glfwCreateWindow(2650, 1600, "OpenGL", glfwGetPrimaryMonitor(), nullptr); //Open fullscreen (alt+tab doesn't seem to work)
-////        auto mWindow = glfwCreateWindow(2650, 1600, "OpenGL", glfwGetPrimaryMonitor(), nullptr); //Open fullscreen (alt+tab doesn't seem to work)
-//    }
+    //Open fullscreen on monitor 2 if a second monitor is connected, or on this monitor
+    //if no second monitor is detected.
+    int displayCount;
+    GLFWmonitor** monitors = glfwGetMonitors(&displayCount);
+    GLFWwindow * mWindow;
+    std::cout << "\nNumber of connected displays detected: " << displayCount << std::endl;
+    if (displayCount == 2) {
+        mWindow = glfwCreateWindow(1920, 1080, "OpenGL", monitors[1], nullptr );
+    }
+    else {
+        mWindow = glfwCreateWindow(2650, 1600, "OpenGL", glfwGetPrimaryMonitor(), nullptr); //Open fullscreen (alt+tab doesn't seem to work)
+    }
     
     // Check for Valid Context
     if (mWindow == nullptr) {
@@ -127,31 +106,14 @@ int main(int argc, char * argv[]) {
     fprintf(stderr, "OpenGL %s\n", glGetString(GL_VERSION));
     float counter = 0.0;
     
-    //Load object file data
-    //load player ship
-//    PlayerShip * pShip = new PlayerShip("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship.obj");
-    
-//    pShip = new PlayerShip("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship.obj");
-    
-  
-    //Need to load mesh into vertices and elements...
-    
-    //std::ifstream infile{ "/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship.obj" };
-   // ObjImporterWrapper("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Objects/space_ship.obj");
-    
-    
-    // Load Shaders
-    
     // Load shaders
-    std::string vert = loadSource((char*)("../../../../../../../../Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/basic.vert"));
+    std::string vert = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/engineEffect.vert"));
     std::string vert3D = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/basic3D.vert"));
-    std::string frag = loadSource((char*)("../../../../../../../../Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/basic.frag"));
-    std::string frag3D = loadSource((char*) ("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/basic3D.frag"));
-    std::string line3D = loadSource((char*) "/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/line3D.frag" );
-    //std::string vert = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/Glitter3/Glitter/basic.vert"));
-    //std::string frag = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/Glitter3/Glitter/basic.frag"));
+    std::string frag = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/engineEffect.frag"));
+    //    std::string frag3D = loadSource((char*) ("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/basic3D.frag"));
+    std::string frag3D = loadSource((char*) ("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/basic3D.frag"));
+    std::string line3D = loadSource((char*) "/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/line3D.frag" );
     
-    //std::printf("source: %s\n", vert.c_str());
     const GLchar* vertexShaderSource = (const GLchar *)vert.c_str();
     const GLchar* fragmentShaderSource = (const GLchar *)frag.c_str();
     
@@ -160,27 +122,16 @@ int main(int argc, char * argv[]) {
     
     const GLchar* fragment3DLineShaderSource = (const GLchar *)line3D.c_str();
     
-
     // Build and compile our shader program
-    // Vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    // Vertex shaders
     GLuint vertexShader3D = glCreateShader(GL_VERTEX_SHADER);
     
-    
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glShaderSource(vertexShader3D, 1, &vertex3DShaderSource, NULL);
     
-    glCompileShader(vertexShader);
     glCompileShader(vertexShader3D);
     // Check for compile time errors
     GLint success;
     GLchar infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
     //Check 3D shader as well for errors:
     glGetShaderiv(vertexShader3D, GL_COMPILE_STATUS, &success);
     if (!success)
@@ -190,61 +141,37 @@ int main(int argc, char * argv[]) {
     }
     
     // Fragment shaders
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     GLuint fragmentShader3D = glCreateShader(GL_FRAGMENT_SHADER);
     GLuint lineShader3D = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glShaderSource(fragmentShader3D, 1, &fragment3DShaderSource, NULL);
     glShaderSource(lineShader3D, 1, &fragment3DLineShaderSource, NULL);
-    glCompileShader(fragmentShader);
     glCompileShader(fragmentShader3D);
     glCompileShader(lineShader3D);
+    
     // Check for compile time errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    //Check the 3D fragment shader for errors as well
     glGetShaderiv(fragmentShader3D, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderInfoLog(fragmentShader3D, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT3D::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
     //Check the 3D line shader
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+    glGetShaderiv(lineShader3D, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(lineShader3D, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::3DLINEFRAG::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
     
-    
     // Link shaders //
-    GLuint shaderProgram = glCreateProgram();
     GLuint shaderProgram3D = glCreateProgram();
     GLuint shaderProgram3DLine = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
     
     glAttachShader(shaderProgram3D, vertexShader3D);
     glAttachShader(shaderProgram3D, fragmentShader3D);
     
     glAttachShader(shaderProgram3DLine, vertexShader3D);
     glAttachShader(shaderProgram3DLine, lineShader3D);
-
-    //glBindFragDataLocation(shaderProgram, 0, "colr"); //I added this line
-    glLinkProgram(shaderProgram);
     
-    // Check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    //Check for 3D shader program
+    //Check for 3D shader program link errors
     glLinkProgram(shaderProgram3D);
     glGetProgramiv(shaderProgram3D, GL_LINK_STATUS, &success);
     if (!success) {
@@ -260,54 +187,69 @@ int main(int argc, char * argv[]) {
         std::cout << "ERROR::SHADER3DLINE::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
     
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
     glDeleteShader(vertexShader3D);
     glDeleteShader(fragmentShader3D);
     glDeleteShader(lineShader3D);
     
-    glUseProgram(shaderProgram); //Start with using the 2D shader, will switch to 3D later on
+    glUseProgram(shaderProgram3D); //Start with using the 2D shader, will switch to 3D later on
     
-    //             //
+    /* from: https://www.opengl.org/discussion_boards/showthread.php/185119-Understanding-VAO-s-VBO-s-and-drawing-two-objects
+     Initialisation:
+     Code :
+     glGenVertexArrays(1, &asteroid_vao);
+     glBindVertexArray(asteroid_vao);
+     glBindBuffer(GL_ARRAY_BUFFER, asteroid_buffer_object);
+     glEnableVertexAttribArray(0);
+     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+     
+     glGenVertexArrays(1, &ship_vao);
+     glBindVertexArray(ship_vao);
+     glBindBuffer(GL_ARRAY_BUFFER, ship_buffer_object);
+     glEnableVertexAttribArray(0);
+     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+     
+     glBindVertexArray(0);
+     
+     Rendering:
+     Code :
+     glUseProgram(theProgram);
+     glBindVertexArray(asteroid_vao);
+     glDrawArrays(GL_LINE_LOOP, 0, num_asteroid_vertices);
+     glBindVertexArray(ship_vao);
+     glDrawArrays(GL_LINE_LOOP, 0, num_ship_vertices);
+     glBindVertexArray(0);
+     glUseProgram(0); */
     
-    // Create Vertex Array Object
-    GLuint vao;  //A VAO is a storage container for VBOs. See: https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    
+    
+    //Ye OLDE WAY:
+    //    // Create Vertex Array Object
+    //    GLuint vao;  //A VAO is a storage container for VBOs. See: https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+    //    glGenVertexArrays(1, &vao);
+    //    glBindVertexArray(vao);
+    
+    //The new way:
+    GLuint spaceshipVAO; //Have a VAO for the spaceship
+    glGenVertexArrays(1, &spaceshipVAO);
+    glBindVertexArray(spaceshipVAO);
     
     GLfloat vertices[6*7*2 + teapot_count * 3];
+    GLfloat vertsPlain[173 * 3];
     
     updateVertices(vertices, 0);
-    
-    //put pShip into vertices
-    //int shipVerts = pShip->putShipIntoVertices(vertices, 0);
-    
-    
-    
     
     // Create a Vertex Buffer Object and copy the vertex data to it
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
     //--------------------------------------------------------------------------
-    //Create an element for element array and stuff
+    //Create an element buffer for element array and stuff
     // Create an element array
     GLuint ebo; //element buffer element object
     glGenBuffers(1, &ebo);
-    
-////    GLuint elements[] = {
-////        0, 1, 2,
-////        2, 3, 0
-////    };
-//    //GLuint elements[teapot_count / 3];
-//    GLuint elements[teapot_count];
-//    for (GLuint i = 0; i < teapot_count; i++) {
-//        elements[i] = i;
-//    }
-    
     
     int faceCounter = 0;
     //This is the version of elements that actually works properly
@@ -315,14 +257,12 @@ int main(int argc, char * argv[]) {
     for (GLuint i = 0; i < ssLoader.model.faces*3; i+=3) {
         //    GLuint elements[ssLoader.model.faces*9];
         //    for (GLuint i = 0; i < ssLoader.model.faces*9; i+=9) {
-        
         elements[i] = ssLoader.faces[faceCounter][0] - 1; //Gotta shift index so values start at 0, not 1
         elements[i+1] = ssLoader.faces[faceCounter][3] - 1;
         elements[i+2] = ssLoader.faces[faceCounter][6] - 1;
         //elements[i+3] = ssLoader.faces[faceCounter][1] - 1;
-       // elements[i+4] = ssLoader.faces[faceCounter][4] - 1;
-        
-       faceCounter++;
+        // elements[i+4] = ssLoader.faces[faceCounter][4] - 1;
+        faceCounter++;
     }
     
     //Create a copy of the elements matrix so we can reset it later in case it gets modified (hint: it gets modified later)
@@ -331,120 +271,15 @@ int main(int argc, char * argv[]) {
         elementsCopyOrignl[i] = elements[i];
     }
     
-    
-//    GLuint elements[ssLoader.model.faces*5];
-//    for (GLuint i = 0; i < ssLoader.model.faces*5; i+=5) {
-////    GLuint elements[ssLoader.model.faces*9];
-////    for (GLuint i = 0; i < ssLoader.model.faces*9; i+=9) {
-//
-//        elements[i] = ssLoader.faces[faceCounter][0] - 1;
-//        elements[i+1] = ssLoader.faces[faceCounter][3] - 1;
-//        elements[i+2] = ssLoader.faces[faceCounter][6] - 1;
-//        elements[i+3] = ssLoader.faces[faceCounter][1] - 1;
-//        elements[i+4] = ssLoader.faces[faceCounter][4] - 1;
-//
-//        //Weird... this seems right
-//        std::cout << "\nFaces are: " << ssLoader.faces[faceCounter][0];
-//        std::cout << "  " <<  ssLoader.faces[faceCounter][3];
-//        std::cout << "  " << ssLoader.faces[faceCounter][6];
-//
-//
-//
-//
-////        elements[i] = ssLoader.faces[faceCounter][0];
-////        elements[i+1] = ssLoader.faces[faceCounter][1];
-////        elements[i+2] = ssLoader.faces[faceCounter][2];
-////        elements[i+3] = ssLoader.faces[faceCounter][3];
-////        elements[i+4] = ssLoader.faces[faceCounter][4];
-////        elements[i+5] = ssLoader.faces[faceCounter][5];
-////        elements[i+6] = ssLoader.faces[faceCounter][6];
-////        elements[i+7] = ssLoader.faces[faceCounter][7];
-////        elements[i+8] = ssLoader.faces[faceCounter][8];
-//        faceCounter++;
- //   }
-
-
- 
-    //GLuint elements[] = {
-      /* 0, 1, 2,
-       0, 3, 2, */
-       /*
-        2, 4, 1,
-        8, 6, 5,
-        5, 2, 1,
-        6, 3, 2,
-        3, 8, 4,
-        1, 8, 5,
-        2, 3, 4,
-        8, 7, 6,
-        5, 6, 2,
-        6, 7, 3,
-        3, 7, 8,
-        1, 4, 8
-        
-    };
-    
-    for (int i = 0; i < 3*12; ++i) {
-        elements[i] -= 1;
-    } */
-    
-    //From when spaceship was drawn with quads
-//    GLuint elements[] = {
-//        //For the spaceship drawn with quads:
-//        1, 2, 3, //row 1
-//        2, 3, 4,
-//        2, 5, 4, //row 2
-//        5, 4, 6,
-//        3, 7, 8, //row 3
-//        7, 8, 1,
-//        5, 9, 4, //row 4
-//        9, 4, 6,
-//        1, 3, 10, //row 5
-//        3, 10, 11,
-//        12, 13, 14, //row 6
-//        13, 14, 15,
-//        16, 14, 17, //row 7
-//        14, 17, 15,
-//        14, 16, 5, //row 8
-//        16, 05, 2,
-//        13, 2, 8, //row 9
-//        2, 8, 17,
-//        13, 18, 19, //row 10
-//        18, 19, 17,
-//        18, 2, 20, //row 11
-//        2,  20, 21,
-//        22, 23, 24, //row 12
-//        23, 24, 25,
-//        26, 21, 24, //row 13
-//        21, 24, 23,
-//        27, 20, 11, //row 14
-//        20, 11, 28,
-//
-//    };
-    
-    
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
+    
     //--------------------------------------------------------------------------
-    
-    
     
     //--------------------------------------------------------------------------
     // Attempt at using stb to load an image (jpg):
-    //
-    //
     // See: https://books.google.com/books?id=F0IwDwAAQBAJ&pg=PA521&lpg=PA521&dq=stbi_load+return&source=bl&ots=r0lFnzFQ1p&sig=ZbB9LW2xJXXiAhqIP4HXpZwKLsM&hl=en&sa=X&ved=0ahUKEwj4o4q6u87YAhURwmMKHS3EBOUQ6AEIVzAH#v=onepage&q=stbi_load%20return&f=false
-    //
-    //
-    //Set attributes (NOT SURE WHERE TO DO THIS? OR IF NEEDED?):
-    //    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-    //    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-    //    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-    //    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-    //    SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
-    //    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    //    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     
     //std::string filename = loadSource((char*)("/Users/forrestmiller/Desktop/xcode_test_projects/Glitter/Antarctica.jpg"));
     
@@ -493,18 +328,8 @@ int main(int argc, char * argv[]) {
     int dataSize = w * h * (0 < STBI_rgb ? STBI_rgb : components); //From that online link
     
     std::vector<unsigned char> image_data;
-    //image_data.resize(dataSize + w * (0 < STBI_rgb ? STBI_rgb : components)); //I changed to this while trying to correct texture
-    //image_data.resize(dataSize + w * 540);
-    //image_data.resize(dataSize + w *10);
     image_data.resize(dataSize);
     std::memcpy(image_data.data(), stbi_data.get(), dataSize);
-    //stbi_image_free(stbi_data); //No longer need? Because of unique ptr
-    ////    if(comp == 3)
-    ////        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    ////    else if(comp == 4)
-    ////        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    //
-    //    stbi_image_free(image);
     //--------------------------------------------------------------------------
     
     
@@ -514,14 +339,7 @@ int main(int argc, char * argv[]) {
     // Create tex object?
     GLuint tex [1];
     glGenTextures(1, tex);
-    //GLuint tex [2];
-    //glGenTextures(2, tex); //glGenTextures(1, tex); //first parameter is num textures to generate?
-    
     glBindTexture(GL_TEXTURE_2D, tex[0]);
-    //glBindTexture(GL_TEXTURE_3D, tex[1]);
-    
-    
-    
     
     //                    WRAPPING
     //Texture coordinates are addressed from 0 to 1 starting from bottom left corner
@@ -534,36 +352,15 @@ int main(int argc, char * argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
     
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-
-    //NOTE!! The 'i' in glTexParameteri specifies the type of value to be used here (integer). For example, if we wanted to
-    //       change the color at the border of the texture, we could use glTexParameterfv (float vector) like so:
-    //
-    // float color[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color);
-    
-    // This changes the border color to red
-    
-    
     //                   FILTERING
-    
     // Note that GL_TEXTURE_MIN_FILTER is for scaling the texture down and GL_TEXTURE_MAG_FILTER is for scaling up
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    
     //     Can also use mipmaps (but only after the texture has been loaded) by doing:
     glGenerateMipmap(GL_TEXTURE_2D);
-    //glGenerateMipmap(GL_TEXTURE_3D);
-
     
     //GL_TEXTURE_MAX_ANISOTROPY_EXT = GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT; //see: https://www.khronos.org/opengl/wiki/Sampler_Object#Sampling_parameters
     
@@ -572,86 +369,14 @@ int main(int argc, char * argv[]) {
     //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED); //Swaps red in for green
     
     
-    
-    
-    
     //                  LOADING TEXTURE
-    
-    //Let's just create a simple pseudo-texture
-    //    // Black/white checkerboard
-    //    float pixels[] = {
-    //        0.0f, 0.0f, 0.0f,   1.0f, 1.0f, 1.0f,
-    //        1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 0.0f
-    //    };
-    
-    
-    //Try to fix the image_data:
-    //for (int i = 0; i < h; i++) {
-    //    image_data.push_back(0.0f);
-    //}
-    
-    
-    
-    //This is what made it work but now it is not working:
-    //    std::vector<unsigned char>::iterator it;
-    //    int loopCounter = 0;
-    //    for (it=image_data.begin(); it<image_data.begin() + dataSize - 10 * w; ++it) {
-    //        if (3 == components) {
-    //            if (++loopCounter % w == 0) {
-    //                image_data.insert(it, (unsigned char) 1.0);
-    //                //image_data.insert(it, (unsigned char) 1.0);
-    //                //image_data.insert(it, (unsigned char) 1.0);
-    //            }
-    //            else if (loopCounter % w == 1) {
-    //                //image_data.insert(it, (unsigned char)1.0);
-    //            }
-    //        }
-    //    }
-    //    for (int i = 0; i < 1830; i++) { //Aha!
-    //        image_data[i] = (unsigned char) 255;
-    //    }
-    
-    //Gotta erase the bogus data  (This is the other thing I was doing that made it sorta work)
-    //image_data.erase (image_data.begin(), image_data.begin()+1832*1); //915 is image width x2
-    
-    //    //Before this point, it is almost there...
-    //    for (it=image_data.begin(); it<image_data.end(); ++it) {
-    //        if (3 == components) {
-    //            if (loopCounter % w == 62) { //gotta try to find where first shift happens
-    //                image_data.insert(it, (unsigned char)255);
-    //            }
-    //        }
-    //    }
-    
-    
-    //YO SOMETHING TO LOOK INTO: Doesn't the GPU take rgb values backwards? Is the
-    //bottom of the texture being modified? Maybe not.. Who knows  (Answer: Probably not)
-    
-    //image_data.insert(image_data.begin(), (unsigned char)255);
-    //    image_data.insert(image_data.begin(), (unsigned char)255);
-    //    image_data.insert(image_data.begin(), (unsigned char)255);
-    
     std::vector<unsigned char>::iterator it;
-    
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Here is the code that fixes a .jpg that is 915x609 pixels
     if (w == 915 && h == 609) {
-        //This is just some debug code:
-        //unsigned char test[w * h]; //This array allowed me to view
         int lineFixerCounter = 3;
-        //for (int i = 3*w - 6 ; i < 9*w+6 ; ++i) {
-        //    for (int i = 0 ; i < 27*w+6 ; ++i) {
         for (int i = 0 ; i < w*h * 3 ; ++i) {
-            //test[i] = image_data[i];
-            //std::cout << (unsigned int)test[i] << " ";
-            //if (i % 3 == 2) {std::cout << std::endl << "pixel " << (i+1)/3 << ": ";}
             if ((i+1) == (w-1)*3) {
-                //            image_data[i+1] = (unsigned char) 255;
-                //            image_data[i+2] = (unsigned char) 255;
-                //            image_data[i+3] = (unsigned char) 255;
-                //            image_data[i+4] = (unsigned char) 0;
-                //            image_data[i+5] = (unsigned char) 0;
-                //            image_data[i+6] = (unsigned char) 255;
                 it = image_data.begin() + i+7;
                 //image_data.insert(it, '\xfe');
                 image_data.insert(it, *(it+3));
@@ -661,10 +386,6 @@ int main(int argc, char * argv[]) {
                 it = image_data.begin() + i+7;
                 //image_data.insert(it, '\0');  //??
                 image_data.insert(it, *(it+3));
-                
-                //image_data[i+7] = (unsigned char) 255;
-                //image_data[i+8] = (unsigned char) 255;
-                //image_data[i+9] = (unsigned char) 255;
             }
             if ((i+1) == (w-1)*6) {
                 it = image_data.begin() + i+7;
@@ -690,14 +411,6 @@ int main(int argc, char * argv[]) {
                     it = image_data.begin() + i+7;
                     //image_data.insert(it, '\xfe');  //??
                     image_data.insert(it, *(it+3));
-                    //Red in top right corner:
-                    // lineFixerCounter++;
-                    // it = image_data.begin() + i+7;
-                    // image_data.insert(it, '\0');
-                    // it = image_data.begin() + i+7;
-                    // image_data.insert(it, '\0');
-                    // it = image_data.begin() + i+7;
-                    // image_data.insert(it, '\xfe');  //??
                 }
                 else {
                     lineFixerCounter++;
@@ -712,70 +425,9 @@ int main(int argc, char * argv[]) {
                     image_data.insert(it, *(it+3));
                 }
             }
-            // if ((i+1)/3 == 1829) {
-            /*image_data[i+1] = (unsigned char) 4;
-             image_data[i+2] = (unsigned char) 110;
-             image_data[i+3] = (unsigned char) 244;
-             image_data[i+4] = (unsigned char) 211;
-             image_data[i+5] = (unsigned char) 211;
-             image_data[i+6] = (unsigned char) 211;
-             
-             
-             it = image_data.begin() + i+3;
-             image_data.insert(it, '\0');
-             it = image_data.begin() + i+4;
-             image_data.insert(it, '\0'); */
-            //  it = image_data.begin() + i+2;
-            //  image_data.insert(it, '\0');
-            //  it = image_data.begin() + i+3;
-            //  image_data.insert(it, '\0');
-            //  it = image_data.begin() + i+4;
-            //  image_data.insert(it, '\0');
-            // }
-            // if (i < 1155*3) {
-            //      image_data[i] = '\xfe';
-            // }
         }
     }
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-//    for (int i = 0; i < w * h * 3; i++) {
-//
-//    }
-    
-    //Gonna try to rewrite what I had above, except in a way that makes it work better
-    
-    //for (int i = 1; i < dataSize-1-h; ++i) {
-//        if (i % (2*w) == 0) {
-//            it = image_data.begin() + i;
-//            image_data.insert(it, '\0');
-//            it = image_data.begin() + i;
-//            image_data.insert(it, '\0');
-//            it = image_data.begin() + i;
-//            image_data.insert(it, '\0');
-//        }
-//        if (i < 2744*3) {
-//            image_data[i] = '\xfe';
-//        }
-      /*  if (i % w == 0) {
-            it = image_data.begin() + i;
-            image_data.insert(it, (unsigned char)255);
-            //image_data.insert(it, (unsigned char)255);
-        }
-        if (i  == 305*3) {
-            it = image_data.begin() + i;
-            //image_data.insert(it, (unsigned char)255);
-            image_data.erase(it);
-        } */
-        //        if (i == w*3) {
-        //            it = image_data.begin() + i;
-        //            image_data.insert(it, (unsigned char)255);
-        //        }
-    //s}
-    
-    //NEW NOTE FROM SCREENSHOT!!!  FIRST RED LINE APPEARS AT PIXEL 230
-    
-    
+    //Give the texture to the GPU
     if(components == 3) {
         //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2745/3 - 3 , h, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data.data());
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h-1, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data.data());
@@ -784,10 +436,8 @@ int main(int argc, char * argv[]) {
     }
     else if(components == 4) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data.data());
-        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data.data());
-        //glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, w, h-1, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data.data());
     }
-//
+    //
     
     //stbi_image_free(image);
     
@@ -799,93 +449,49 @@ int main(int argc, char * argv[]) {
     //--------------------------------------------------------------------------
     
     
-    //I am moving these next 3 lines up above to see if that changes anything
-    //    // Create a Vertex Buffer Object and copy the vertex data to it
-    //    GLuint vbo;
-    //    glGenBuffers(1, &vbo);
-    
-    
-    //GLfloat vertices[floatsPerTriangle*triangleCount];
-    // GLfloat vertices[6*7*2]; //Moving to up early in code
-    
-    
     
     //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
     
-    
-    // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    GLint colAttrib = glGetAttribLocation(shaderProgram, "colr"); //Added this line for textures
-    GLint texAttrib = glGetAttribLocation(shaderProgram, "texCoord");
-    
+    //
     GLint posAttrib3D = glGetAttribLocation(shaderProgram3D, "position3D");
     GLint texAttrib3D = glGetAttribLocation(shaderProgram3D, "texCoord3D");
     
     GLint posAttrib3DLine = glGetAttribLocation(shaderProgram3DLine, "position3D");
     GLint texAttrib3DLine = glGetAttribLocation(shaderProgram3DLine, "texCoord3D");
     
-    /*
-    glEnableVertexAttribArray(posAttrib);
-    glEnableVertexAttribArray(colAttrib); //Added this line for textures
-    //glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0); //Changed this line to (see below)
-    //--------------------------------------------------------------------------
-    // More Texture stuff:
-    //GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
-    glEnableVertexAttribArray(texAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), 0); //To this line (see above)
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7*sizeof(float), (void*)(2*sizeof(float)));
     
-    
-    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), (void*)(5*sizeof(float)));
-    */ //turn off 2D shader for testing
-    //For 3D shader:
     glEnableVertexAttribArray(posAttrib3D);
     glEnableVertexAttribArray(texAttrib3D);
     glVertexAttribPointer(posAttrib3D, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); //To this line (see above)
-     glVertexAttribPointer(texAttrib3D, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(texAttrib3D, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
     
     
-    //For 3D line shader:
     glEnableVertexAttribArray(posAttrib3DLine);
+    glVertexAttribPointer(posAttrib3DLine, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
     glEnableVertexAttribArray(texAttrib3DLine);
-    glVertexAttribPointer(posAttrib3DLine, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); //To this line (see above)
     glVertexAttribPointer(texAttrib3DLine, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
     
-    //For 3D line shader (don't need?):
-//    glEnableVertexAttribArray(texAttrib3DLine);
-//    glVertexAttribPointer(posAttrib3DLine)
     
-    
-    
-    //or
-    //    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    //    glEnableVertexAttribArray(posAttrib);
-    //    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), 0); //To this line (see above)
-    //
-    //    GLint colAttrib = glGetAttribLocation(shaderProgram, "colr");
-    //    glEnableVertexAttribArray(colAttrib);
-    //    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-    //
-    //    GLint texAttrib = glGetAttribLocation(shaderProgram, "texCoord");
-    //    glEnableVertexAttribArray(texAttrib);
-    //    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-    //
-    //    //    //--------------------------------------------------------------------------
-    
-    
-    
+    glBindVertexArray(0);
     
     //--------------------------------------------------------------------------
     //--------------------------------------------------------------------------
     //   //Try  out my new class for shader creation:
-    mainEngineEffect->attachVert("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/engineEffect.vert");
-    mainEngineEffect->attachFrag("/Users/forrestmiller/Desktop/xcode_test_projects/OpenGLSetupTestWithSTBWorking/Shaders/engineEffect.frag");
+    mainEngineEffect->attachVert("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/engineEffect.vert");
+    mainEngineEffect->attachFrag("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/engineEffect.frag");
     
     mainEngineEffect->link();
     mainEngineEffect->setVertexAttribName("enginePos");
-    mainEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3); //Can I bring in class enums like a namespace?
+    //mainEngineEffect->setTextureAttribName("engineTxtr");
+    //mainEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3TEXEL2); //Can I bring in class enums like a namespace?
+    
+    mainEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3, vbo, ebo); //vbo doesn't have to be the same vbo as used for other draw calls
+    
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
     
     GLint engineZoom = glGetUniformLocation(mainEngineEffect->getID(), "zoom");
     GLint engineTime = glGetUniformLocation(mainEngineEffect->getID(), "time");
@@ -893,114 +499,62 @@ int main(int argc, char * argv[]) {
     //--------------------------------------------------------------------------
     //--------------------------------------------------------------------------
     
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    // SIDE ENGINE SHADER!
+    sideEngineEffect->attachVert("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/engineEffect.vert");
+    sideEngineEffect->attachFrag("/Users/forrestmiller/Desktop/xcode_test_projects/SpaceShipGame3D/Shaders/sideEngineEffect.frag");
+    
+    sideEngineEffect->link();
+    sideEngineEffect->setVertexAttribName("enginePos");
+    //sideEngineEffect->setTextureAttribName("engineTxtr");
     
     
+    sideEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3, vbo, ebo); //vbo doesn't have to be the same vbo as used for other draw calls
+    
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
+    
+    //    GLint engineZoom = glGetUniformLocation(mainEngineEffect->getID(), "zoom");
+    //    GLint engineTime = glGetUniformLocation(mainEngineEffect->getID(), "time");
+    //GLint engineZoom;
+    // GLint engineTime;
     
     
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    glBindVertexArray(0);
     
     //UNIFORMS!!!!!
-    GLint texEnum = glGetUniformLocation(shaderProgram, "tex");
     GLint texEnum3D = glGetUniformLocation(shaderProgram3D, "tex3D");
-    GLint time = glGetUniformLocation(shaderProgram, "time");
     GLint time3D = glGetUniformLocation(shaderProgram3D, "time3D");
     GLint time3DLine = glGetUniformLocation(shaderProgram3DLine, "time3D");
-    GLfloat theta = glGetUniformLocation(shaderProgram, "theta"); //I added this line
-    GLfloat xCoor = glGetUniformLocation(shaderProgram, "xCoor");
-    GLfloat yCoor = glGetUniformLocation(shaderProgram, "yCoor");
     GLfloat xCoor3D = glGetUniformLocation(shaderProgram3D, "xCoor3D");
     GLfloat yCoor3D = glGetUniformLocation(shaderProgram3D, "yCoor3D");
+    
+    //glad_glVertex3f mainEngPos = glGetUniformLoation(shaderProgram3D, "mainEnginePos");
+    //Turns out i am not sure how to pass in a vector as a uniform, so here:
+    GLfloat mainEngX = glGetUniformLocation(shaderProgram3D, "mainEngPosX");
+    GLfloat mainEngY = glGetUniformLocation(shaderProgram3D, "mainEngPosY");
+    GLfloat mainEngZ = glGetUniformLocation(shaderProgram3D, "mainEngPosZ");
     
     GLfloat xCoord3DLine = glGetUniformLocation(shaderProgram3DLine, "xCoor3D");
     GLfloat yCoord3DLine = glGetUniformLocation(shaderProgram3DLine, "yCoor3D");
     
-    //GLfloat xCoor3DLine = glGetUniformLocation(shaderProgram3DLine, "xCoor3D");
-    //GLfloat yCoor3DLine = glGetUniformLocation(shaderProgram3DLine, "yCoor3D");
-    
-    GLfloat zoom = glGetUniformLocation(shaderProgram, "zoom"); //For w-axis
     GLfloat zoom3D = glGetUniformLocation(shaderProgram3D, "zoom3D"); //For w-axis
     GLfloat zoom3DLine = glGetUniformLocation(shaderProgram3DLine, "zoom3D");
     
-    GLfloat thta = 0.0;
-    GLfloat zoomFactor = 1.0;
-    GLfloat xPos = 0.0;
-    GLfloat yPos = 0.0;
-    //GLint textureToDraw = 0;
+    GLfloat thta = 0.0f;
+    GLfloat zoomFactor = 5.0f;
+    GLfloat xPos = 0.0f;
+    GLfloat yPos = 0.0f;
     
-    //Make these global
-//    Quaternion * xRot = new Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
-//    Quaternion * yRot = new Quaternion(0.0f, 1.0f, 0.0f, 0.0f);
-//    Quaternion * zRot = new Quaternion(0.0f, 0.0f, 1.0f, 0.0f);
-    
-    //    //Just a test:
-    //    for (unsigned char c: image_data) {
-    //        std::cout << (float) c << " ";
-    //    }
-    
-    
-    //--------------------------------------------------------------------------
-    //--------------------------------------------------------------------------
-    //--------------------------------------------------------------------------
-    //Here is where I try doing:http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-14-render-to-texture/
-    //
-    //    GLuint FramebufferName = 0;
-    //    glGenFramebuffers(1, &FramebufferName);
-    //    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-    //
-    //
-    //    // The texture we're going to render to
-    //    GLuint renderedTexture;
-    //    glGenTextures(1, &renderedTexture);
-    //
-    //    // "Bind" the newly created texture : all future texture functions will modify this texture
-    //    glBindTexture(GL_TEXTURE_2D, renderedTexture);
-    //
-    //    // Give an empty image to OpenGL ( the last "0" )
-    //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data.data());
-    //
-    //    // Poor filtering. Needed !
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //
-    //    // Set "renderedTexture" as our colour attachement #0
-    //    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
-    //
-    //    // Set the list of draw buffers.
-    //    GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-    //    glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
-    //
-    //
-    //    // Always check that our framebuffer is ok
-    //    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    //        return EXIT_FAILURE;
-    //    }
-    //    //--------------------------------------------------------------------------
-    //--------------------------------------------------------------------------
-    //--------------------------------------------------------------------------
-    
-    
-    //updateVertices(vertices, 0.0); //Update vertices is where rotations and translations are applied
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    
-    
-//    //Try this here
-//    //////////////////////////
-//    //Instead try
-//    glDisable(GL_DITHER);
-//    glDisable(GL_POINT_SMOOTH);
-//    glDisable(GL_LINE_SMOOTH);
-//    glDisable(GL_POLYGON_SMOOTH);
-//    glHint(GL_POINT_SMOOTH, GL_DONT_CARE);
-//    glHint(GL_LINE_SMOOTH, GL_DONT_CARE);
-//    glHint(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
-//#define GL_MULTISAMPLE_ARB 0x809D
-//    glDisable( GL_MULTISAMPLE_ARB) ;
-    ////////////////////////////////
-    
+    bool drawLines = true;
     
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
-        
+        movementOccuredThisIteration = false; //For engine effect translation history thing
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(mWindow, true);
         }
@@ -1011,7 +565,6 @@ int main(int argc, char * argv[]) {
         if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
             //thta -= ROTATIONSPEED;
             yRot->changeTheta(yRot->getTheta() - ROTATIONSPEED);
-            
         }
         if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS) {
             thta += ROTATIONSPEED;
@@ -1020,17 +573,6 @@ int main(int argc, char * argv[]) {
         if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
             thta -= ROTATIONSPEED;
             xRot->changeTheta(xRot->getTheta() - ROTATIONSPEED);
-        }
-        if (glfwGetKey(mWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            thta = 0.0f;
-            zoomFactor = 1.0f;
-            xPos = 0.0f;
-            yPos = 0.0f;
-            xRot->changeTheta(0.0f);
-            yRot->changeTheta(0.0f);
-            zRot->changeTheta(0.0f);
-            xChange = 0.0f;
-            yChange = 0.0f;
         }
         
         if (glfwGetKey(mWindow, 'Z') == GLFW_PRESS) {
@@ -1042,18 +584,30 @@ int main(int argc, char * argv[]) {
         if (glfwGetKey(mWindow, 'W') == GLFW_PRESS) {
             yPos -= MOVEMENTY;
             yChange -= MOVEMENTY;
+            movementOccuredThisIteration = true;
+            //translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].y -= MOVEMENTY;
+            translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].y = yChange;
         }
         if (glfwGetKey(mWindow, 'S') == GLFW_PRESS) {
             yPos += MOVEMENTY;
             yChange += MOVEMENTY;
+            movementOccuredThisIteration = true;
+            //translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].y += MOVEMENTY;
+            translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].y = yChange;
         }
         if (glfwGetKey(mWindow, 'A') == GLFW_PRESS) {
             xPos += MOVEMENTX;
             xChange += MOVEMENTX;
+            movementOccuredThisIteration = true;
+            //translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].x -= MOVEMENTX;
+            translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].x = xChange;
         }
         if (glfwGetKey(mWindow, 'D') == GLFW_PRESS) {
             xPos -= MOVEMENTX;
             xChange -= MOVEMENTX;
+            movementOccuredThisIteration = true;
+            //translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].x += MOVEMENTX;
+            translationHistory[ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1].x = xChange;
         }
         if (glfwGetKey(mWindow, 'Q') == GLFW_PRESS) {
             yRot->changeTheta(yRot->getTheta() + ROTATIONSPEED);
@@ -1071,21 +625,47 @@ int main(int argc, char * argv[]) {
             zRot->changeTheta(zRot->getTheta() - ROTATIONSPEED);
         }
         
+        if ((glfwGetKey(mWindow, '`') == GLFW_PRESS)) {
+            if (tildeKeyPressCounter < counter - (0.025 * 15)) { //Only switch after a small delay (delay based off counter)
+                tildeKeyPressCounter = counter;
+                drawLines = !drawLines;
+            }
+        }
+        if (glfwGetKey(mWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            thta = 0.0f;
+            zoomFactor = 5.0f;
+            xPos = 0.0f;
+            yPos = 0.0f;
+            xRot->changeTheta(0.0f);
+            yRot->changeTheta(0.0f);
+            zRot->changeTheta(0.0f);
+            xChange = 0.0f;
+            yChange = 0.0f;
+            //Reset translationHistory array
+            for (int i = 0; i < ENGINE_FLAME_TRANSLATION_DELAY_FRAMES; ++i) {
+                translationHistory[i].x = 0.0f;
+                translationHistory[i].y = 0.0f;
+                translationHistory[i].z = -0.5f;
+            }
+            movementOccuredThisIteration = false; //even if it did, everything is getting reset so pretend it never happened
+        }
+        
+        
         // Background Fill Color
         //glClearColor(sin(counter), 0.25f, 0.25f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         // Send "counter" value into shader via as uniform
-        glUniform1f(time, counter);
+        //  glUniform1f(time, counter);
         //glUniform1i(texEnum, *tex);
-        glUniform1i(texEnum, tex[0]);
-       // glUniform1i(texEnum3D, tex[1]);
-        glUniform1f(theta, thta);
-        glUniform1f(zoom, zoomFactor);
+        //     glUniform1i(texEnum, tex[0]);
+        // glUniform1i(texEnum3D, tex[1]);
+        //     glUniform1f(theta, thta);
+        //        glUniform1f(zoom, zoomFactor);
         //glUniform1f(zoom3D, zoomFactor);
-        glUniform1f(xCoor, xPos);
+        //   glUniform1f(xCoor, xPos);
         //glUniform1f(xCoor3D, xPos);
-//        glUniform1f(xCoord3DLine, xPos);
-        glUniform1f(yCoor, yPos);
+        //        glUniform1f(xCoord3DLine, xPos);
+        //   glUniform1f(yCoor, yPos);
         //glUniform1f(yCoor3D, yPos);
         //glUniform1f(yCoord3DLine, yPos);
         
@@ -1097,119 +677,80 @@ int main(int argc, char * argv[]) {
         
         
         // Draw Stuff
+        glUseProgram(shaderProgram3D); //Use the 3D shader program
         updateVertices(vertices, counter);
-        //int shipVertCount = pShip->putShipIntoVertices(vertices, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBindVertexArray(spaceshipVAO);
+        //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        
+        //        glEnableVertexAttribArray(posAttrib3D);
+        //        glEnableVertexAttribArray(texAttrib3D);
+        //        glVertexAttribPointer(posAttrib3D, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); //To this line (see above)
+        //        glVertexAttribPointer(texAttrib3D, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+        
+        //Handle engine translation by shifting all array contents one to the right
+        for (int i = 0; i < ENGINE_FLAME_TRANSLATION_DELAY_FRAMES - 1; ++i) {
+            translationHistory[i] = translationHistory[i+1];
+            //std::cout << "\nPOS " << i+1 << " Vector is: " << translationHistory[i+1].x << " " << translationHistory[i+1].y << " " << translationHistory[i+1].z;
+        } //Shouldn't need to update last slot if movement never occured because its value will be the same
+        //std::cout << std::endl;
         
         tex[0] = 0; //A-HA! This fixed it for some reason
-        //tex[0] = (tex[0] + 1) % 2;
+        //tex[0] = (tex[0] + 1) % 2; //What? DOn;t rememebr why I wrote this
         
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex[0], 0);
-        
-        //glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex[1], 0);
         
         //StreamDraw means going to update once, use once, and discard
         //DynamicDraw means going to set once, then use a bunch with potential modifications
         
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-        //glDrawArrays(GL_TRIANGLES, 0, floatsPerTriangle*triangleCount);
-        
-        //Reset elements:
+        //Reset elements
         for (int i = 0; i < ssLoader.model.faces * 3; ++i) {
             elements[i] = elementsCopyOrignl[i];
         }
         
-        //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);  //I added this one
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+        //Set the element array buffer to elements
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);  //I added this one
-        //glDrawArrays(GL_TRIANGLES, 0, 6*7);
+        //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);  //I added this one
         
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //Changed 3rd parameter to get it to draw finally
-        
-//        if (counter != 0.0) { //Don't turn the first program on during the first iteration because it will already be on
-//            glUseProgram(shaderProgram);
-//            glDrawArrays(GL_LINE_LOOP, (2*teapot_count+18), 6);
-//            //glDrawElements(GL_TRIANGLE_FAN, 5000, GL_UNSIGNED_INT, 0);
-//        }
-        
-        
-        
-        
-        //glEnable(GL_TEXTURE_3D); //Turn on 3D texturing
-       // tex[0] = 1; //Use the 3D texture? //No I don't think so
-        glUseProgram(shaderProgram3D); //Use the 3D shader program
-        
-        //Need to redo shaders upon switching programs (or at least I think this needs to happen) (try uncommenting to see)
+        //Need to redo Uniforms upon switching programs (or at least I think this needs to happen) (try uncommenting to see)
         glUniform1f(time3D, counter);
         glUniform1f(zoom3D, zoomFactor);
-        glUniform1f(xCoor3D, xCoor);
-        glUniform1f(yCoor3D, yCoor);
-        //glDrawArrays(GL_LINES, 0, teapot_count / 3);
-        //glDrawArrays(GL_TRIANGLES, 0, 90);
-        //
-        //Sytanx for glDrawElements is
-        // glDrawElements(    GLenum mode, GLsizei count, GLenum type, const GLvoid * indices); //Note that 'type' is
-        //                   the type of the array 'elements', not 'vertices' (so probably should be some type of integer).
-        //glDrawElements(GL_TRIANGLES, teapot_count / 3, GL_UNSIGNED_INT, 0); //Not sure why last param is 0.
+        glUniform1f(xCoor3D, xPos);
+        glUniform1f(yCoor3D, yPos);
         
-        //!!!!!!!!! THIS NEXT LINE BELOW WAS MY DRAW CALL
-        //glDrawElements(GL_TRIANGLES, teapot_count / 3, GL_UNSIGNED_INT, 0);
-        //glDrawElements(GL_TRIANGLES, ssLoader.model.faces, GL_UNSIGNED_INT, 0);
-//        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        //        GLfloat mainEngX = glGetUniformLocation(shaderProgram3D, "mainEngPosX");
+        //        GLfloat mainEngY = glGetUniformLocation(shaderProgram3D, "mainEngPosY");
+        //        GLfloat mainEngZ = glGetUniformLocation(shaderProgram3D, "mainEngPosZ");
+        glUniform1f(mainEngX, rear.x);
+        glUniform1f(mainEngY, rear.y);
+        glUniform1f(mainEngZ, rear.z);
         
-      
+        glDrawElements(GL_TRIANGLES, ssLoader.model.faces*3*2, GL_UNSIGNED_INT, 0);
         
+        // glDisableVertexAttribArray(posAttrib3D);
+        // glDisableVertexAttribArray(texAttrib3D);
         
-        glDrawElements(GL_TRIANGLES, ssLoader.model.faces*3, GL_UNSIGNED_INT, 0);
         
         // So at this point, pass 1 has been completed and written to the framebuffer
         // So we switch the active program, set the uniforms required for it, and then drawElements for pass 2
         glUseProgram(shaderProgram3DLine); //Use the line shader program
         
-         //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
-        
-        //Need to make lines appear slightly outside the teapot to avoid clipping issue
-        //float yFixShift = 0.50f;
-        float increaseFactor = 1.005f;
-        
-        //If drawing the teapot, do:
-        /*
-        for (int i = 0; i < teapot_count * (5) / 3; ++i) {
-            //Need to handle y case seperatly because teapot isn't centered on y axis, it is all
-            //above the y axis
-            if (i % 5 == 1) { //If vert data is in format (x,y,z,tex_X,tex_Y) then y is at position 1
-                vertices[i] = (yFixShift*increaseFactor) + (increaseFactor * (vertices[i] - yFixShift));
-            }
-            else {
-                vertices[i] = vertices[i] * increaseFactor;
-            }
-        }  */
-        
-        //SpaceShip lines fix:
-        for (int i = 0; i < ssLoader.model.positions * 5; ++i) {
-            if (i % 5 < 3) {
-                vertices[i] *= increaseFactor;
-            }
-        }
-        
-        //Reset buffer data?
-        //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-         //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-        
-       // glUniform1f(time3D, counter);
+        //Turns out I might not need this, since I made the lines draw thicker
+        //        float increaseFactor = 1.000f; //1.005f
+        //        //SpaceShip lines fix:
+        //        for (int i = 0; i < ssLoader.model.positions * 5; ++i) {
+        //            if (i % 5 < 3) {
+        //                vertices[i] *= increaseFactor;
+        //            }
+        //        }
+        //Set uniforms
         glUniform1f(zoom3DLine, zoomFactor);
-        glUniform1f(xCoord3DLine, xCoor);
-        glUniform1f(yCoord3DLine, yCoor);
+        glUniform1f(xCoord3DLine, xPos);
+        glUniform1f(yCoord3DLine, yPos);
         glUniform1f(time3DLine, counter);
-        
-        //!!!!!!!!! THIS NEXT LINE BELOW WAS MY DRAW CALL
-        //glDrawElements(GL_LINES, teapot_count / 3, GL_UNSIGNED_INT, 0);
-        //glDisable(GL_TEXTURE_3D); //Turn off 3d texturing
-        //glDrawElements(GL_LINES, 774/3, GL_UNSIGNED_INT, 0);
-       // glDrawElements(GL_LINES, ssLoader.model.faces*3*2, GL_UNSIGNED_INT, 0);
         
         
         GLuint tempElementsCopy[ssLoader.model.faces*9];
@@ -1230,113 +771,297 @@ int main(int argc, char * argv[]) {
             elemtsPos += 3;
         }
         //Copy temp back into elements
+        //int test;
         for (int i = 0; i < ssLoader.model.faces*3*2; i++) {
             elements[i] = tempElementsCopy[i];
+            //            test = elements[i];
+            //            std::cout << "\n   " << test;
         }
         
-        //Since both the element array and the vertex array have been changed since last draw call, need to let openGL know to get the new buffer data
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        //For 3D line shader: (turning this back on seems to make the lines draw?)
+        //        if (drawLines) {
+        //            glEnableVertexAttribArray(posAttrib3DLine);
+        //            glVertexAttribPointer(posAttrib3DLine, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); //To this line (see above)
+        //            glEnableVertexAttribArray(texAttrib3DLine);
+        //            glVertexAttribPointer(texAttrib3DLine, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+        //        }
         
+        //Since both the element array and the vertex array have been changed since last draw call, need to let openGL know to get the new buffer data
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
         
         glad_glEnable(GL_DEPTH_CLAMP); //Gets read of near/far plane culling (but not top/bottom plane, if this makes sense)
         glad_glEnable(GL_DITHER); //Does something
         glad_glEnable(GL_LINE_SMOOTH); //Makes the lines smooth
         glad_glEnable(GL_MULTISAMPLE); //Turns on additional anti-aliasing
-        glDrawElements(GL_LINES, ssLoader.model.faces*3*2, GL_UNSIGNED_INT, 0); //Actual draw call to draw lines
-        glad_glDisable(GL_DEPTH_CLAMP); //Turn off all the glEnable's I just turned on 
-        glad_glDisable(GL_DITHER);
-        glad_glDisable(GL_LINE_SMOOTH);
-        glad_glDisable(GL_MULTISAMPLE);
+        if (drawLines) {
+            glDrawElements(GL_LINES, ssLoader.model.faces*3*2, GL_UNSIGNED_INT, 0); //Actual draw call to draw lines
+        }
+        //        glad_glDisable(GL_DEPTH_CLAMP); //Turn off all the glEnable's I just turned on
+        //        glad_glDisable(GL_DITHER);
+        //        glad_glDisable(GL_LINE_SMOOTH);
+        //        glad_glDisable(GL_MULTISAMPLE);
         
-        //Use engine shader
+        
+        glBindVertexArray(0);
+        // glDisableVertexAttribArray(posAttrib3DLine);
+        // glDisableVertexAttribArray(texAttrib3DLine);
+        
+        //(try to) Use engine shader
+        
+        // mainEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3);
+        //        mainEngineEffect->specifyVertexLayout(ShaderWrapper::VERT3TEXEL2, vbo);
+        
+        
+        //Draw the main engine flame
         mainEngineEffect->use();
-        glUseProgram(mainEngineEffect->getID());
+        //glUseProgram(mainEngineEffect->getID());
+        engineZoom = glGetUniformLocation(mainEngineEffect->getID(), "zoom");
+        engineTime = glGetUniformLocation(mainEngineEffect->getID(), "time");
         glUniform1f(engineZoom, zoomFactor);
         glUniform1f(engineTime, counter);
         
-        //Modify elements to just the vertex positions of the engines
-        int elemCounter = 0;
-        for (unsigned int i = 741u; i < 753u; i+=3u) {
-            elements[elemCounter] = i;
-            elements[elemCounter+1] = i+1u;
-            elements[elemCounter+2] = 1+2u;
-            elemCounter += 3;
+        //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
+        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        
+        //Copy over vertices into a new array that I can change values in
+        int vertCounter = 0;
+        for (int i = 0; i < ssLoader.model.vertices; ++i) {
+            vertsPlain[i] = vertices[vertCounter];
+            ++vertCounter;
+            if (i % 3 == 2) {
+                //                if (vertsPlain[i] <= deleteMeLater__MIN) {
+                //                  deleteMeLater__MIN = vertsPlain[i];
+                //                }
+                //                if (vertsPlain[i] <= deleteMeLater__MIN + 0.25f && vertsPlain[i-2] < -0.7f ) {
+                //                   std::cout << "\nMin Z is: " << deleteMeLater__MIN << " and 'i' is " << i;
+                //                   std::cout << "\nAlso, x at i=" << i << " is " << vertsPlain[i-2] << std::endl;
+                //                }
+                vertCounter += 2; //Skip over the texture coordinates in the data in vertices
+            }
         }
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        rear.x = 0.0f; //Back of engine is -2.34201
+        rear.y = 0.0f;
+        rear.z = -2.94231f;
+        rear += translationHistory[0];
+        rear = xRot->computeRotation(rear);
+        rear = yRot->computeRotation(rear);
+        rear = zRot->computeRotation(rear);
+        
+        vertsPlain[0] = rear.x;
+        vertsPlain[1] = rear.y;
+        vertsPlain[2] = rear.z;
         
         
-//        //Reset elements to how it was when the render loop first began
-//        //Copy temp back into elements
-//        for (int i = 0; i < ssLoader.model.faces*3*2; i++) {
-//            elements[i] = tempElementsCopy[i];
-//        }
+        //Layout of main engine vertices:
+        //             138   136   52
+        //               _----------_
+        //        140 _-˜            ˜-_ 54
+        //           /                  \
+        //      142 /                    \ 56
+        //         |                      |
+        //         |                      | 57
+        //      143 \                    /
+        //           \                  /
+        //        141 ˜-_            _-˜  55
+        //               ˜----------˜
+        //           139      137    53
+        //
         
         
-        //After both passes have completed, flip buffer to the screen
+        
+        elements[0] = 0;
+        elements[1] = 52;
+        elements[2] = 54;
+        elements[3] = 56;
+        elements[4] = 57;
+        elements[5] = 55;
+        elements[6] = 53;
+        
+        elements[7] = 137;   //
+        elements[8] = 139;
+        elements[9] = 141;
+        elements[10] = 143;
+        elements[11] = 142;
+        elements[12] = 140;
+        elements[13] = 138;
+        elements[14] = 136;
+        elements[15] = 52;
+        /*
+         glBufferData(GL_ARRAY_BUFFER, sizeof(vertsPlain), vertsPlain, GL_STREAM_DRAW);
+         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+         
+         
+         glDrawElements(GL_LINES, ssLoader.model.faces*3, GL_UNSIGNED_INT, 0);
+         */
+        //        for (unsigned int i = 0u; i < 100u; ++i) {
+        //            elements[i] = i;
+        //            vertsPlain[i] = -2.34201f;
+        //        }
+        
+        
+        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertsPlain), vertsPlain, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertsPlain), vertsPlain, GL_STREAM_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+        
+        //        glad_glEnable(GL_DEPTH_CLAMP);
+        //        glad_glEnable(GL_DITHER); //Does something
+        //        glad_glEnable(GL_LINE_SMOOTH); //Makes the lines smooth
+        //        glad_glEnable(GL_MULTISAMPLE); //Turns on additional anti-aliasing
+        glDrawElements(GL_TRIANGLE_FAN, 16, GL_UNSIGNED_INT, 0);
+        //        glad_glDisable(GL_DITHER); //Does something
+        //        glad_glDisable(GL_LINE_SMOOTH); //Makes the lines smooth
+        //        glad_glDisable(GL_MULTISAMPLE); //Turns on additional anti-aliasing
+        //        glad_glDisable(GL_DEPTH_CLAMP);
+        
+        
+        
+        //Side ENGINE EFFECT
+        sideEngineEffect->use();
+        engineZoom = glGetUniformLocation(sideEngineEffect->getID(), "zoom");
+        engineTime = glGetUniformLocation(sideEngineEffect->getID(), "time");
+        
+        glUniform1f(engineZoom, zoomFactor);
+        glUniform1f(engineTime, counter);
+        
+        
+        //!!!    This is for the right engine     !!!!
+        //reuse rear
+        rear.x = 2.00213f; //From model data
+        rear.y = 0.0f;
+        rear.z = -2.21f; //-2.19111 is the most read side engine z component
+        rear += translationHistory[0];
+        rear = xRot->computeRotation(rear);
+        rear = yRot->computeRotation(rear);
+        rear = zRot->computeRotation(rear);
+        //set center of cone to rotated values of rear
+        vertsPlain[0] = rear.x;
+        vertsPlain[1] = rear.y;
+        vertsPlain[2] = rear.z;
+        
+        //  Right engine element location
+        //
+        //               50
+        //               /\_
+        //              /   \_
+        //          51 /  0   \ 49
+        //             \     _/
+        //              \  _/
+        //               \/
+        //               48
+        
+        elements[0] = 0;
+        elements[1] = 51;
+        elements[2] = 50;
+        elements[3] = 49;
+        elements[4] = 48;
+        elements[5] = 51;
+        
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertsPlain), vertsPlain, GL_STREAM_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+        
+        glDrawElements(GL_TRIANGLE_FAN, 5+1, GL_UNSIGNED_INT, 0);
+        
+        
+        //!!!    This is for the left engine     !!!!
+        //reuse rear
+        rear.x = -2.00213f; //I got coordinates from model data
+        rear.y = 0.0f;
+        rear.z = -2.21f; //-2.19111 is the most read side engine z component
+        rear += translationHistory[0];
+        rear = xRot->computeRotation(rear);
+        rear = yRot->computeRotation(rear);
+        rear = zRot->computeRotation(rear);
+        //set center of cone to rotated values of rear
+        vertsPlain[0] = rear.x;
+        vertsPlain[1] = rear.y;
+        vertsPlain[2] = rear.z;
+        
+        // Left side element locations ()...
+        //
+        //              132
+        //     131           129
+        //              130
+        //
+        //GLuint temp = (GLuint) floor(counter * 3.0f);
+        
+        elements[0] = 0;
+        elements[1] = 130u;
+        elements[2] = 131u;
+        elements[3] = 132u;
+        elements[4] = 133u;
+        elements[5] = 130u;
+        //elements[3] = 131u;
+        //elements[4] = 132;
+        //elements[5] = 133;
+        //elements[6] = 134;
+        
+        
+        //std::cout << "\ntemp is " << temp << " and temp+1 is " << temp+1u;
+        //std::cout << std::endl;
+        
+        
+        
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertsPlain), vertsPlain, GL_STREAM_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+        
+        glDrawElements(GL_TRIANGLE_FAN, 6, GL_UNSIGNED_INT, 0);
+        glad_glDisable(GL_DITHER); //Does something
+        glad_glDisable(GL_LINE_SMOOTH); //Makes the lines smooth
+        glad_glDisable(GL_MULTISAMPLE); //Turns on additional anti-aliasing (though I don't really see a difference)
+        glad_glDisable(GL_DEPTH_CLAMP);
+        
+        glBindVertexArray(0); //Vertex attribute array
+        glUseProgram(0);
+        
         // Flip Buffers and Draw
         glfwSwapBuffers(mWindow);
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Reset depth/color buffer bits
         counter += 0.05;
+        
     }   glfwTerminate();
-    //stbi_image_free(image); //No longer need since i got a unique_ptr
     
     //Free Memory allocated for Rotation Quaternions:
     delete xRot; xRot = nullptr;
     delete yRot; yRot = nullptr;
     delete zRot; zRot = nullptr;
-    
+    //Free other dynamic memory
     delete mainEngineEffect; mainEngineEffect = nullptr;
+    delete sideEngineEffect; sideEngineEffect = nullptr;
+    delete [] translationHistory; translationHistory = nullptr;
     
     //End process
     return EXIT_SUCCESS;
 }
 
+//void makeEngineFlameOnSpaceShip(GLfloat * engineVerts) {
+//    //Assuming that first 100 values have been set to -2.34201f
+//
+//}
+
 void updateVertices(GLfloat* vertices, float t) {
     aiVector3D * vects = new aiVector3D[ssLoader.model.positions]; //model contains a count of types of components, so note that model.positions is a single variable representing the number of positions, while positions is an array of vertex data
     
-    //Need to figure out the vector for 'forward'
+    //Model loads with ship facing -Z direction, so forward is -z
     aiVector3D forward(0.0f, 0.0f, -1.0f);
     
-//    aiVector3D right(1.0f, 0.0f, 0.0f);
     forward = xRot->computeRotation(forward);
     forward = yRot->computeRotation(forward);
     forward = zRot->computeRotation(forward);
-
-//    right = xRot->computeRotation(right);
-//    right = yRot->computeRotation(right);
-//    right = zRot->computeRotation(right);
-//
-    
-    
-  //  forward.Normalize(); //Not sure if this returns normalized vector or actually normalizes the vector
-    
     
     for (int i = 0; i < ssLoader.model.positions; i++) {
-        vects[i].x = ssLoader.positions[i][0]; //"Positions" is the verte data in the model
+        //
+        vects[i].x = ssLoader.positions[i][0]; //"Positions" is the vertex data from the model
         vects[i].y = ssLoader.positions[i][1];
         vects[i].z = ssLoader.positions[i][2];
         
-//        xRot->changeRotationAxis(xRot->getRotationAxis() + aiVector3D(yChange * forward.x, yChange * forward.y, forward.z));
-//        yRot->changeRotationAxis(yRot->getRotationAxis() + aiVector3D(yChange * forward.x, yChange * forward.y, forward.z));
-//        zRot->changeRotationAxis(zRot->getRotationAxis() + aiVector3D(yChange * forward.x, yChange * forward.y, forward.z));
-//
         vects[i] = xRot->computeRotation(vects[i]);
         vects[i] = yRot->computeRotation(vects[i]);
         vects[i] = zRot->computeRotation(vects[i]);
         
-//        vects[i].x += yChange * forward.x;
-//        vects[i].y += yChange * forward.y;
-        
-//        vects[i].x -= xChange * right.x;
-//        vects[i].y -= xChange * right.y;
-        
         vects[i].x += xChange;
         vects[i].y += yChange;
-//
-        
     }
     
     int vertexNum = 0;
@@ -1344,8 +1069,7 @@ void updateVertices(GLfloat* vertices, float t) {
         vertices[i] = vects[vertexNum].x;
         vertices[i+1] = vects[vertexNum].y;
         vertices[i+2] = vects[vertexNum].z;
-        
-        //Loading the cube caused a crash, so here I say "if faces == faces that the cube has, then don't crash" 
+        //Loading the cube caused a crash, so here I say "if faces == '# of faces that the cube has', then don't crash by accessing ssLoader.texels[0][arrayIndexThatDoesNotExist]"
         if (ssLoader.model.faces == 12) {
             vertices[i+3] = 0.0f;
             vertices[i+4] = 0.0f;
@@ -1356,324 +1080,19 @@ void updateVertices(GLfloat* vertices, float t) {
         }
         vertexNum++;
     }
-   
-    for (int i = 0; i < ssLoader.model.positions * 5; i++) {
-        if (i % 5 < 3) { //This is more efficent than if statement below this one
-        //if (i % 5 != 3 && i % 5 != 4) { //Shrink only xyz coords, not texture coords
-            vertices[i] *= 1.0f/5.0f;
-        }
-    }
-    
-    /*
-    //Figure out where the smallest (most negative) z values occur (i.e. get the coordinates of the back of the ship)
-    int minZ = 100.0f;
-    for (int i = 2; i < (ssLoader.model.positions * 5)-3 ; ++i) {
-        if (vertices[i] < minZ) {
-            minZ = vertices[i];
-//            std::cout << "\nSmallest z vertices occur at index: " << i;
-//            std::cout << "\nAnd the X Y Z values for this vertice are: ";
-//            if (i > 3) {
-//                std::cout << vertices[i-2] << ", " << vertices[i-1] << ", ";
-//                std::cout << vertices[i] << std::endl;
-            //}
-        }
-    } //Turns out they occur at [752] and [787] (those are positions of the z values)
-    //The xyz coordinates are 0.0, -+0.33824, -2.20744
-    //also [747] and [742]
-    //also [737] and [732]
-    //also [727] and [722]
-    */
-    
+    //Note that I now just shrink the entire model within the vert shader
+    //    for (int i = 0; i < ssLoader.model.positions * 5; i++) {
+    //        if (i % 5 < 3) { //Shrink only xyz coords, not texture coords
+    //            vertices[i] *= 1.0f/5.0f;
+    //        }
+    //    }
     delete [] vects;
 }
 
-
-
-
-//Old teapot stuff and what not:
-//void updateVertices(GLfloat* vertices, float t)
-//{
-//    //    //2d:  //Note: This never worked correctly
-////    for (int i = 0; i < 6; i++) {
-////        int index2d = 2*teapot_count+18;
-////        vertices[index2d++] = 0.8f; //1x
-////        vertices[index2d++] = 0.8f; //1y
-////        vertices[index2d++] = -0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = -0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = 0.8f; //2x?
-////        vertices[index2d++] = -0.8f; //2y
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = -0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = -0.8f; //3x?
-////        vertices[index2d++] = 0.8f; //3y?
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = -0.8f;
-////        vertices[index2d++] = 0.8f;
-////        vertices[index2d++] = -0.8f;
-////        vertices[index2d++] = 0.8f;
-////    }
-//
-//    //float temp = 0.3f + 0.25f * (float)sin(t);
-//    float tempVertices[] = {
-//        //        //  Position            Color                              Texcoords
-//        //        -0.8f,  1.0f,       1.0f,   0.0f,   0.0f,               0.0f, 1.0f, // Top-left
-//        //        0.8f,  1.0f,       0.0f,   1.0f,   0.0f,               0.0f, 0.0f, // Top-right
-//        //        0.8f, -1.0f,       0.0f,   temp,   1.0f,               1.0f, 0.0f, // Bottom-right
-//        //
-//        //        //  -0.5f,  0.5f,       1.0f,   0.0f,   0.0f,               0.0f, 0.0f, // Top-left
-//        //        -0.8f, -1.0f,       1.0f,   1.0f,   1.0f,               1.0f, 1.0f,  // Bottom-left
-//        //        //   0.5f, -0.5f,       0.0f,   temp,   1.0f,               1.0f, 1.0f // Bottom-right
-//        //
-//
-//        //  Position            Color                              Texcoords
-//        //        -0.25f,  0.25f,       1.0f,   0.0f,   0.0f,               0.0f, 1.0f, // Top-left
-//        //        0.25f,  0.25f,       0.0f,   1.0f,   0.0f,               0.0f, 0.0f, // Top-right
-//        //        0.25f, -0.25f,       0.0f,   temp,   1.0f,               1.0f, 0.0f, // Bottom-right
-//        //
-//        //
-//        //        -0.25f, -0.25f,       1.0f,   1.0f,   1.0f,               1.0f, 1.0f,  // Bottom-left
-//
-//
-//        //        //  Position            Color                              Texcoords
-//        //        -915.0f/609.0f,  1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 0.0f, // Top-left
-//        //        915.0f/609.0f,  1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 0.0f, // Top-right
-//        //        915.0f/609.0f, -1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 1.0f, // Bottom-right
-//        //        -915.0f/609.0f, -1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 1.0f,  // Bottom-left
-//        //
-//
-//
-//        //        //Make the triangles accomodate the skew?
-//        //  Position            Color                              Texcoords
-//        -1.0f,  1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 0.0f, // Middle-left corner  //0
-//        1.0f,  1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 0.0f, // Top-Corner   //1
-//        1.0f, -1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 1.0f, // Middle-Right corner  //2
-//        -1.0f, -1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 1.0f,  // Bottom-Corner  //3
-//
-//
-//
-//
-//        //Zoomed in on texture
-//        //  Position            Color                              Texcoords
-//        //        -1.0f,  1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 0.0f, // Top-left
-//        //        1.0f,  1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 0.0f, // Top-right
-//        //        1.0f, -1.0f,       0.0f,   0.0f,   0.0f,               1.0f, 0.05f, // Bottom-right
-//        //        -1.0f, -1.0f,       0.0f,   0.0f,   0.0f,               0.0f, 0.05f,  // Bottom-left
-//
-//    };
-////
-////    //Some quaternion testing
-//////    Quaternion* qPtr, *qPtr2;
-//////    if ((int)t % 180 < 90) {
-//////        qPtr = new Quaternion(0.3f, -0.3f, 1.0f, 3.141592f / 2.0f * t*t/10.0f);
-//////    }
-//////    else {
-//////        qPtr = new Quaternion(-0.3f, 0.3f, 1.0f, 3.141592f / 2.0f * (t*t - (t-90.0f)*(t-90.0f))/10.0f);
-//////    }
-//////    qPtr2 = new Quaternion(0.5f, 0.5f, 0.33f, 3.14159f * t/ 32.0f);
-//////    for (int i = 0; i < 7 * 4; i++) {
-////////        if (i % 7 == 0 || i % 7 == 1) {
-////////            vertices[i] = tempVertices[i] * 2;
-////////        }
-//////        if (i % 7 == 0) {
-//////            aiVector3D tempV(tempVertices[i], tempVertices[i+1], 1.0);
-//////            //aiVector3D tempV2(tempVertices[i], tempVertices[i+1], 1.0);
-//////
-//////            //Next line for debug:
-//////            std::cout << "BEFORE QUAT: Tempv is  x: " << tempV.x << "    and y: " << tempV.y << std::endl;
-//////            tempV = qPtr->computeRotation(tempV);
-//////            //tempV = qPtr2->computeRotation(tempV);
-//////            //Or try doing this (should result in same rotation):
-//////            //qPtr->changeRotationAxis(0.0f, 0.0f, 1.0f );
-//////           // *qPtr = (*qPtr) * (*qPtr2);
-//////            //tempV = qPtr->computeRotation(tempV);
-//////
-//////            //Next line for debug:
-//////            std::cout << "AFTER QUAT: Tempv is  x: " << tempV.x << "    and y: " << tempV.y << std::endl;// << std::endl;
-//////            std::cout << "And t is: " << t << std::endl << std::endl;
-//////            //std::cout << "AFTER QUAT: Tempv2 is  x: " << tempV.x << "    and y: " << tempV2.y << std::endl << std::endl;
-//////            vertices[i] = tempV.x;
-//////            vertices[i+1] = tempV.y;
-//////        }
-//////        else if (i % 7 == 1) {
-//////            //do nothing
-//////        }
-//////        else {
-//////            vertices[i] = tempVertices[i];
-//////        }
-//////    }
-//////    //Delete the quaternions
-//////    delete qPtr; qPtr = nullptr; delete qPtr2; qPtr2 = nullptr;
-//////    //Set zeros in
-//////    for (int i = 7*4; i < 7*4*2 ; i++) {
-//////        vertices[i] = 0.0f; //Might as well set some things to zero past where array starts
-//////    }
-////
-////
-////    int j = 0; //J is just an index iterator for looping
-////    float xMax, yMax;
-////    xMax = yMax = 0.0f;
-////    aiVector3D teapotVerts [teapot_count / 3];
-////    for (int i = 0; i < teapot_count; i+=3) {
-////        //teapotVerts[j] = aiVector3D(teapot[i], teapot[i+1], teapot[i+2]);
-////        if (teapot[i] > xMax) {xMax = teapot[i];}
-////        if (teapot[i+1] > yMax) {yMax = teapot[i+1];}
-////        aiVector3D temp(teapot[i], teapot[i+1], teapot[i+2]);
-////        temp = xRot->computeRotation(temp);
-////        temp = yRot->computeRotation(temp);
-////        temp = zRot->computeRotation(temp);
-////        teapotVerts[j] = temp;
-////        j+=1;
-////    }
-////
-////    j = 0; //Reuse J, note that it just represents an index iterator for this next loop
-////    //This next loop handles direct translation and also texture rotation maybe
-////    for (int i = 0; i < teapot_count * 2.0f; i+=5) {
-////        float zoomFact = 1.0f/2.50f;
-////        //DO zooming and translation
-////        vertices[i] = zoomFact * teapotVerts[j].x + xChange; //xChange is xDisplacement from user input
-////        vertices[i+1] = -1.0f * zoomFact * teapotVerts[j].y + yChange; //yChange is set from user input
-////        vertices[i+2] = zoomFact * teapotVerts[j].z;
-////
-////        vertices[i+3] =  -((teapotVerts[j].x / xMax) + 1.0f) / 2.0f; //I did some work on paper and this might work
-////
-////        //Do
-////        //vertices[i+4] =  ((teapotVerts[j].y / yMax) + 1.0f) / 2.0f;
-////        vertices[i+4] =  (abs((teapotVerts[j].y)) - 1.7f + 0.0f*sin(0.25f*t) ) / 7.0f;
-////
-//////        aiVector3D textureVector(  -((teapotVerts[j].x / xMax) + 1.0f) / 2.0f,
-//////                              (abs((teapotVerts[j].y)) - 1.7f + 0.0f*sin(0.25f*t) ) / 7.0f,
-//////                              0.1f );
-//////
-//////        textureVector = xRot->computeRotation(textureVector);
-//////        textureVector = yRot->computeRotation(textureVector);
-//////        textureVector = zRot->computeRotation(textureVector);
-//////
-//////        vertices[i+4] = textureVector.x;
-//////        vertices[i+5] = textureVector.y;
-////        //Old thing this loop did back when I did translation within the vert shader
-//////        vertices[i+3] = zoomFact * teapotVerts[j].x;
-//////        vertices[i+4] = 1.0f * zoomFact * teapotVerts[j].y;
-////        //vertices[i+5] = zoomFact * teapotVerts[j].z;
-////        j += 1;
-////    }
-////
-////    //New and improved spaceship loading:
-////
-////
-////    
-//////    //Don't do the teapot but instead do the spaceship. Overwrite the vertices with these:
-//////    int k = 0;
-//////    for (int i = 0; i < (774 * 5) / 3; i+=5) {
-//////        float zoomFact = 1.0f/12.0f;
-//////
-//////        //More complicated copying over, with rotations included
-//////        aiVector3D temp(ssVerts[k], ssVerts[k+1], ssVerts[k+2]);
-//////        k+=3;
-//////        temp = xRot->computeRotation(temp);
-//////        temp = yRot->computeRotation(temp);
-//////        temp = zRot->computeRotation(temp);
-//////
-//////        vertices[i] = zoomFact * temp.x + xChange;
-//////        vertices[i+1] = zoomFact * temp.y + yChange;
-//////        vertices[i+2] = zoomFact * temp.z;
-//////
-////////        //Simple copying over of vertices:
-////////        vertices[i] = ssVerts[k++] + xChange;
-////////        vertices[i+1] = ssVerts[k++] + yChange;
-////////        vertices[i+2] = ssVerts[k++];
-//////    }
-////    
-////    //for (int i = 7*4*2; i < 7*4*2+teapot_count; i+=7) {
-////        //aiVector3D temp(teapot[j], teapot[j+1], teapot[j+2]);
-////        //j+=3;
-////        //Quaternion rotation(0.0, 0.0, 1.0, 3.14159f/12.0f * t);
-////
-////        //temp = rotation.computeRotation(temp);
-////
-////        
-////
-//////        vertices[i] = temp.x / 10.0f;
-//////        vertices[i+1] = temp.y / 10.0f;
-//////        vertices[i+2] = temp.z / 10.0f;
-//////        vertices[i+3] = 0.0f;
-//////        vertices[i+4] = teapot[j];
-//////        vertices[i+5] = teapot[j];
-//////        vertices[i+6] = teapot[j-1];
-////
-////
-////
-////
-////
-//////        vertices[i] = teapot[j++];
-//////        vertices[i+1] = teapot[j++];
-//////        vertices[i+2] = teapot[j++];
-//////        vertices[i+3] = 0.0f;
-//////        vertices[i+4] = teapot[j];
-//////        vertices[i+5] = teapot[j];
-//////        vertices[i+6] = teapot[j-1];
-//////
-////        
-//////        vertices[i] = teapot[j++];
-//////        vertices[i+1] = teapot[j++];
-//////        vertices[i+2] = teapot[j++];
-//////        vertices[i+3] =teapot[j++];
-//////        vertices[i+4] = teapot[j++];
-//////        vertices[i+5] = teapot[j++];
-//////        vertices[i+6] = teapot[j++];
-//////
-////
-////   // }
-////    //    for (int i=0; i<triangleCount; i++) {
-////    //
-////    //        int idx = i*floatsPerTriangle;
-////    //
-////    //
-////    //        // Specify triangles with 3 pairs of X and Y coordinates
-////    //        //float p = 1.0*float(i+t*0.005);
-////    //
-////    //        //float xCenter = 0.01*sqrt(p)*0.5*cos(p*0.2);
-////    //
-////    //        //float yCenter = 0.01*sqrt(p)*0.5*sin(p*0.2);
-////    //
-////    //        //My Code
-////    //        float xCenter;
-////    //
-////    //        if (idx % 200 <= 45) {
-////    //        //xCenter = 0.001 + sin(0.001*idx)*cos(sin(cos(idx+(idx/3))));
-////    //        //xCenter = 0;
-////    //            xCenter = (0.001)*idx * sin(idx);
-////    //         }
-////    //         else {
-////    //        //     xCenter = -0.005 - 0.001*idx - 4*sin(0.025 * idx/t + t);
-////    //            xCenter = (0.001)*idx * cos(idx);
-////    //         }
-////    //
-////    //        float yCenter = -2.0 * 0.2*sin(t * 0.3 * xCenter);
-////    //        ///if (idx % 5 == 0)
-////    //        ///  yCenter = (0.001 * idx / t);
-////    //        //else
-////    //        //  yCenter = (-0.0001 * idx) / (t * idx);
-////    //        //End of my code
-////    //
-////    //        vertices[idx+0] = xCenter; //X1
-////    //        vertices[idx+1] = yCenter+5.0*triangleSize; // Y1
-////    //
-////    //        vertices[idx+2] = xCenter-5.0*triangleSize; // X2
-////    //        vertices[idx+3] = yCenter; // Y2
-////    //
-////    //        vertices[idx+4] = xCenter+5.0*triangleSize; // X3
-////    //        vertices[idx+5] = yCenter; // Y3
-////    //    }
-////}
-
-std::string loadSource(char* filename)
-{
+std::string loadSource(char* filename) {
     std::ifstream infile{ filename };
     return{ std::istreambuf_iterator<char>(infile), std::istreambuf_iterator<char>() };
 }
+
+
+
